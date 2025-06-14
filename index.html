@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RyanneHook</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://unpkg.com/cursor-effects@latest/dist/browser.js"></script>
+    <style>
+        body {
+            font-family: 'segoe ui', sans-serif;
+            background-color: #050505;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #c0c0c0;
+        }
+        .container {
+            background-color: #0a0a0a;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.8);
+            width: 85%;
+            max-width: 450px;
+            transition: transform 0.2s ease;
+        }
+        h1 {
+            font-family: 'segoe ui', sans-serif;
+            text-align: center;
+            color: #c0c0c0;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        label {
+            font-family: 'segoe ui', sans-serif;
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input {
+            font-family: 'segoe ui', sans-serif;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #222;
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #111;
+            color: #c0c0c0;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        input:hover {
+            border-color: #0a4068;
+            box-shadow: 0 0 4px rgba(10, 64, 104, 0.3);
+        }
+        input:focus {
+            border-color: #0a4068;
+            box-shadow: 0 0 6px rgba(10, 64, 104, 0.5);
+            background-color: #131313;
+        }
+        button {
+            font-family: 'segoe ui', sans-serif;
+            background-color: #0a4068;
+            color: #c0c0c0;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        button:hover {
+            background-color: #0d4d7f;
+            box-shadow: 0 0 8px rgba(10, 64, 104, 0.5);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%, -50%);
+            transform-origin: 50% 50%;
+            pointer-events: none;
+        }
+        button:hover::after {
+            animation: ripple 1s ease-out;
+            opacity: 0.3;
+        }
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.3;
+            }
+            100% {
+                transform: scale(100, 100);
+                opacity: 0;
+            }
+        }
+        .status {
+            font-family: 'segoe ui', sans-serif;
+            margin-top: 15px;
+            text-align: center;
+            color: #808080;
+            font-size: 13px;
+        }
+        .error {
+            color: #f48771;
+        }
+        .success {
+            color: #89d185;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RyanneHook</h1>
+        
+        <label for="password" style="text-align: center;">Enter your invite-key</label>
+        <input type="password" id="password" placeholder="Key">
+        
+        <button onclick="decryptFile()">Try</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+    <script>
+window.addEventListener("load", (event) => {
+  new cursoreffects.ghostCursor();
+});
+</script>
+    <script>
+        const ENCRYPTED_DATA = "FyDnz3NcY4oMggo2TR6pilSRkVkBcySgtaipa2QJorYAryNO8vpxTgxDB/kdE87k";
+        
+        async function decryptFile() {
+            const password = document.getElementById('password').value;
+            const statusElement = document.getElementById('status');
+            
+            if (!password) {
+                statusElement.textContent = "Please, enter valid invite-key.";
+                statusElement.className = "status error";
+                return;
+            }
+            
+            try {
+                statusElement.textContent = "decrypting";
+                statusElement.className = "status";
+                
+                const encryptedBytes = atob(ENCRYPTED_DATA);
+                const encryptedBuffer = new Uint8Array(encryptedBytes.length);
+                for (let i = 0; i < encryptedBytes.length; i++) {
+                    encryptedBuffer[i] = encryptedBytes.charCodeAt(i);
+                }
+                
+                const iv = encryptedBuffer.slice(0, 16);
+                const data = encryptedBuffer.slice(16);
+                
+                const passwordBytes = new TextEncoder().encode(password);
+                const keyBuffer = await crypto.subtle.digest('SHA-256', passwordBytes);
+                
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    keyBuffer,
+                    { name: 'AES-CBC' },
+                    false,
+                    ['decrypt']
+                );
+                
+                const decryptedBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-CBC',
+                        iv: iv
+                    },
+                    key,
+                    data
+                );
+                
+                const decryptedBytes = new Uint8Array(decryptedBuffer);
+                const paddingLength = decryptedBytes[decryptedBytes.length - 1];
+                const unpaddedData = decryptedBytes.slice(0, decryptedBytes.length - paddingLength);
+                
+                const randomFilename = Array(16)
+                    .fill(0)
+                    .map(() => {
+                        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                        return chars.charAt(Math.floor(Math.random() * chars.length));
+                    })
+                    .join('') + '.zip';
+                
+                const blob = new Blob([unpaddedData], { type: 'application/zip' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = randomFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                statusElement.textContent = "Valid invite-key, download has started.";
+                statusElement.className = "status success";
+            } catch (e) {
+                console.error(e);
+                statusElement.textContent = "Failed, invalid invite-key.";
+                statusElement.className = "status error";
+            }
+        }
+    </script>
+</body>
+</html>
