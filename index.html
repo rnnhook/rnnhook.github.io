@@ -212,7 +212,7 @@ window.addEventListener("load", (event) => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                statusElement.textContent = "Valid invite-key, download has started.";
+                statusElement.textContent = "Valid invite-key, download has been started.";
                 statusElement.className = "status success";
             } catch (e) {
                 console.error(e);
